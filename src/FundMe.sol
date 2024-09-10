@@ -17,8 +17,8 @@ contract FundMe {
     // 303 gas - constant
     // 2402 gas - non constant
 
-    address[] public funders;
-    mapping(address funder => uint256 amountFunded) public addressToAmountFunded;
+    address[] private s_funders;
+    mapping(address funder => uint256 amountFunded) private s_addressToAmountFunded;
 
     address public immutable i_owner;
     AggregatorV3Interface private s_priceFeed;
@@ -34,8 +34,8 @@ contract FundMe {
         // 1. How do we send ETH to this contract
         // require(getConversionRate(msg.value) >= minimunUsd, "didn't send enough ETH"); // 1e18 = 1 ETH = 1000000000000000000
         require(msg.value.getConversionRate(s_priceFeed) >= MINIMUN_USD, "didn't send enough ETH"); // Using library
-        funders.push(msg.sender);
-        addressToAmountFunded[msg.sender] = addressToAmountFunded[msg.sender] + msg.value;
+        s_funders.push(msg.sender);
+        s_addressToAmountFunded[msg.sender] = s_addressToAmountFunded[msg.sender] + msg.value;
     }
 
     function getVersion() public view returns (uint256) {
@@ -43,12 +43,12 @@ contract FundMe {
     }
 
     function withdraw() public onlyOwner {
-        for (uint256 funderIndex = 0; funderIndex < funders.length; funderIndex++) {
-            address funder = funders[funderIndex];
-            addressToAmountFunded[funder] = 0;
+        for (uint256 funderIndex = 0; funderIndex < s_funders.length; funderIndex++) {
+            address funder = s_funders[funderIndex];
+            s_addressToAmountFunded[funder] = 0;
         }
         // reset the array
-        funders = new address[](0);
+        s_funders = new address[](0);
         // actually withdraw the funds
 
         // // transfer
@@ -74,5 +74,18 @@ contract FundMe {
 
     fallback() external payable { 
         fund();
+    }
+
+    /**
+     * View / Pure function (Getters)
+     */
+    function getAddressToAmountFunded(
+        address fundingAddress
+    ) external view returns (uint256) {
+        return s_addressToAmountFunded[fundingAddress];
+    }
+
+    function getFunder(uint256 index) external view returns (address) {
+        return s_funders[index];
     }
 }
